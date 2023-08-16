@@ -9,7 +9,7 @@
 ### POSIX is a multithreading mechanism with a library in order to create and manage threads in our code. Here is the functions allowed in the project.
 
 ## Allowed functions :
-* int pthread_create(pthread_t *restrict thread,
+* int pthread_/create(pthread_/t *restrict thread,
                           const pthread_attr_t *restrict attr,
                           void *(*start_routine)(void *),
                           void *restrict arg);
@@ -29,11 +29,11 @@
 * int pthread_mutex_init(pthread_mutex_t *mutex,
                         const pthread_mutexattr_t *mutexattr);
 ### initialize a mutex
-* int pthread_mutex_lock(pthread_mutex_t *mutex));
+* int pthread_/mutex_/lock(pthread_/mutex_/t *mutex));
 ### lock a ressource
 * int pthread_mutex_unlock(pthread_mutex_t *mutex);
 ### unlock a ressource
-* int pthread_mutex_destroy(pthread_mutex_t *mutex);
+* int pthread_/mutex_/destroy(pthread_/mutex_/t *mutex);
 ### free the ressources associate to a mutex that is not more needed
 
 ## Deadlocks
