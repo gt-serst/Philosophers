@@ -3,72 +3,71 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-
 typedef struct s_philo
 {
-	int		n;
-	int		number_of_philosophers;
-	int		state[5];
-	pthread_t	tid[5];
+	int				number_of_philosophers;
+	int				state[5];
+	pthread_t		tid[5];
 	pthread_mutex_t	lock[5];
 }	t_philo;
 
-void	is_thinking(t_philo *philo)
+void	is_thinking(t_philo *philo, size_t i)
 {
-	philo->state[philo->n] = 1;
-	pthread_mutex_lock(&philo->lock[philo->n]);
-	printf("Philosopher %d is thinking\n", philo->n);
-	pthread_mutex_unlock(&philo->lock[philo->n]);
-	
+	philo->state[i] = 1;
+	pthread_mutex_lock(&philo->lock[i]);
+	printf("Philosopher %d is thinking\n", i);
+	pthread_mutex_unlock(&philo->lock[i]);
+
 }
 
-void	take_forks(t_philo *philo)
+void	take_forks(t_philo *philo, size_t i)
 {
-	if (philo->state[philo->n] == 1 && philo->state[(philo->n - 1 + philo->number_of_philosophers) % philo->number_of_philosophers] != 2 && philo->state[(philo->n + 1) % philo->number_of_philosophers] != 2)
+	if (philo->state[i] == 1 && philo->state[(i - 1 + philo->number_of_philosophers) % philo->number_of_philosophers] != 2 && philo->state[(i + 1) % philo->number_of_philosophers] != 2)
 	{
-		pthread_mutex_lock(&philo->lock[philo->n]);
-		philo->state[philo->n] = 2;
-		pthread_mutex_unlock(&philo->lock[philo->n]);
+		pthread_mutex_lock(&philo->lock[i]);
+		philo->state[i] = 2;
+		pthread_mutex_unlock(&philo->lock[i]);
 	}
 }
 
-void	is_eating(t_philo *philo)
+void	is_eating(t_philo *philo, size_t i)
 {
 	usleep(5);
-	pthread_mutex_lock(&philo->lock[philo->n]);
-	printf("Philosopher %d is eating\n", philo->n);
-	pthread_mutex_unlock(&philo->lock[philo->n]);
+	pthread_mutex_lock(&philo->lock[i]);
+	printf("Philosopher %d is eating\n", i);
+	pthread_mutex_unlock(&philo->lock[i]);
 }
 
-void	put_forks(t_philo *philo)
+void	put_forks(t_philo *philo, size_t i)
 {
-	pthread_mutex_lock(&philo->lock[philo->n]);
-	philo->state[philo->n] = 0;
-	pthread_mutex_unlock(&philo->lock[philo->n]);
+	pthread_mutex_lock(&philo->lock[i]);
+	philo->state[i] = 0;
+	pthread_mutex_unlock(&philo->lock[i]);
 }
 
-void	is_sleeping(t_philo *philo)
+void	is_sleeping(t_philo *philo, size_t i)
 {
 	usleep(5);
-	pthread_mutex_lock(&philo->lock[philo->n]);
-	printf("Philosopher %d is sleeping\n", philo->n);
-	pthread_mutex_unlock(&philo->lock[philo->n]);	
+	pthread_mutex_lock(&philo->lock[i]);
+	printf("Philosopher %d is sleeping\n", i);
+	pthread_mutex_unlock(&philo->lock[i]);
 }
 
 void	*philosophers(void *data)
 {
+	size_t	i;
 	t_philo	*philo;
 
 	philo = (t_philo *)data;
-	pthread_mutex_lock(&philo->lock[philo->n + 1]);
-	philo->n = philo->n + 1;
-	printf("Welcome philosopher %d!\n", philo->n);
-	pthread_mutex_unlock(&philo->lock[philo->n]);
-	is_thinking(philo);
-	take_forks(philo);
-	is_eating(philo);
-	put_forks(philo);
-	is_sleeping(philo);
+	pthread_mutex_lock(&philo->lock[i + 1]);
+	i = i + 1;
+	printf("Welcome philosopher %d!\n", i);
+	pthread_mutex_unlock(&philo->lock[i]);
+	is_thinking(philo, i);
+	take_forks(philo, i);
+	is_eating(philo, i);
+	put_forks(philo, i);
+	is_sleeping(philo, i);
 	return (NULL);
 }
 
@@ -124,7 +123,6 @@ int	main(int argc, char **argv)
 {
 	t_philo	philo;
 
-	philo.n = -1;
 	philo.number_of_philosophers = atoi(argv[1]);
 	init_mutexes(&philo);
 	create_threads(&philo);
