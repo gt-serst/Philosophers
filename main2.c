@@ -43,6 +43,7 @@ int	main(int argc, char **argv)
 	size_t	i;
 	t_main	main;
 
+	(void)argc;
 	init_struct(&main, argv);
 	i = 0;
 	while (i < main.number_of_philosophers)
