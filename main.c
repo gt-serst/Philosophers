@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   main.c                                             :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: gt-serst <marvin@42.fr>                    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/08/21 22:34:21 by gt-serst          #+#    #+#             */
+/*   Updated: 2023/08/21 22:36:30 by gt-serst         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include <stdio.h>
 #include <pthread.h>
 #include <stdlib.h>
@@ -13,6 +25,7 @@ typedef struct s_philo
 	int				pos;
 	int				rightFork;
 	int				leftFork;
+	int				lastMeal;
 	struct s_env	*env;	
 	pthread_t		tid;
 }	t_philo;
@@ -25,24 +38,24 @@ typedef struct s_env
 	int				time_to_sleep;
 	int				eat_count_max;
 	long 			time;
-	int				state[100];
-	t_philo			philos[100];
-	pthread_mutex_t forks[100];
-	pthread_mutex_t state_change[100];
+	int				state[1000];
+	t_philo			philos[1000];
+	pthread_mutex_t forks[1000];
+	pthread_mutex_t state_change[1000];
 	pthread_mutex_t writing;
 }	t_env;
 
 void	is_eating(t_philo *philo)
 {
 	pthread_mutex_lock(&philo->env->writing);
-	printf("Philosopher %d is eating\n", philo->pos + 1);
+	//printf("Philosopher %d is eating\n", philo->pos + 1);
 	pthread_mutex_unlock(&philo->env->writing);
 }
 
 void	is_sleeping(t_philo *philo)
 {
 	pthread_mutex_lock(&philo->env->writing);
-	printf("Philosopher %d is sleeping\n", philo->pos + 1);
+	//printf("Philosopher %d is sleeping\n", philo->pos + 1);
 	pthread_mutex_unlock(&philo->env->writing);
 }
 
@@ -50,12 +63,29 @@ void	take_forks(t_philo *philo)
 {
 	pthread_mutex_lock(&philo->env->forks[(philo->pos)]);
 	pthread_mutex_lock(&philo->env->writing);
-	printf("Philosopher %d has taken a fork\n", philo->pos + 1);
+	//printf("Philosopher %d has taken a fork\n", philo->pos + 1);
 	pthread_mutex_unlock(&philo->env->writing);
 	pthread_mutex_lock(&philo->env->forks[(philo->pos + 1) % philo->env->number_of_philosophers]);
 	pthread_mutex_lock(&philo->env->writing);
-	printf("Philosopher %d has taken a fork\n", philo->pos + 1);
+	//printf("Philosopher %d has taken a fork\n", philo->pos + 1);
 	pthread_mutex_unlock(&philo->env->writing);
+}
+
+int	is_dead(t_philo *philo)
+{
+	struct timeval current_time;
+
+	gettimeofday(&current_time, NULL);
+	philo->lastMeal = (current_time.tv_sec * 1000 + current_time.tv_usec / 1000) - philo->env->time;
+	printf("Time since last meal %d\n", philo->lastMeal);
+	if (philo->lastMeal >= 1000)
+	{
+		pthread_mutex_lock(&philo->env->writing);
+		printf("Philosopher %d died\n", philo->pos);
+		pthread_mutex_unlock(&philo->env->writing);
+		return (1);
+	}
+	return (0);
 }
 
 void	*philosophers(void *data)
@@ -63,39 +93,46 @@ void	*philosophers(void *data)
 	t_philo	*philo;
 
 	philo = (t_philo *)data;
+	//if (is_dead(philo) == 1)
+	//	exit(0);
 	pthread_mutex_lock(&philo->env->writing);
-	printf("Philosopher %d has entered the room\n", philo->pos + 1);
+	//printf("Philosopher %d has entered the room\n", philo->pos + 1);
 	pthread_mutex_unlock(&philo->env->writing);
 	while (1)
 	{
 		take_forks(philo);
 		is_eating(philo);
-		usleep(1000);
+		usleep(10000);
 		pthread_mutex_lock(&philo->env->writing);
-		printf("Philosopher %d has finished eating\n", philo->pos + 1);
+		//printf("Philosopher %d has finished eating\n", philo->pos + 1);
 		pthread_mutex_unlock(&philo->env->writing);
 		pthread_mutex_unlock(&philo->env->forks[philo->pos]);
 		pthread_mutex_unlock(&philo->env->forks[(philo->pos + 1) % philo->env->number_of_philosophers]);
 		is_sleeping(philo);
-		usleep(1000);
+		usleep(10000);
 		pthread_mutex_lock(&philo->env->writing);
-		printf("Philosopher %d has finished sleeping\n", philo->pos + 1);
+		//printf("Philosopher %d has finished sleeping\n", philo->pos + 1);
 		pthread_mutex_unlock(&philo->env->writing);
-		printf("Il est actuellement: %d\n", gettimeofday(NULL, NULL));
 	}
-	return (NULL);
 }
 
-void	create_threads(t_env *env)
+int	create_threads(t_env *env)
 {
-	int			i;
+	int	i;
+	int	err;
 
 	i = 0;
 	while (i < env->number_of_philosophers)
 	{
-		pthread_create(&env->philos[i].tid, NULL, philosophers, &(env->philos[i]));
+		err = pthread_create(&env->philos[i].tid, NULL, philosophers, &(env->philos[i]));
+		if (err != 0)
+		{
+			printf("Hello\n");
+			return (0);
+		}
 		i++;
 	}
+	return (1);
 }
 
 void	join_threads(t_env *env)
@@ -174,8 +211,9 @@ int	main(int argc, char **argv)
   	printf("milliseconds : %ld\n", env.time);
 	(void)argc;
 	init_struct(&env, argv);
-	//create_threads(&env);
-	//join_threads(&env);
+	if (!create_threads(&env))
+		return (EXIT_FAILURE);
+	join_threads(&env);
 	destroy_mutexes(&env);
-	return (0);
+	return (EXIT_SUCCESS);
 }
