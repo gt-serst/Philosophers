@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gt-serst <marvin@42.fr>                    +#+  +:+       +#+        */
+/*   By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/21 22:34:21 by gt-serst          #+#    #+#             */
-/*   Updated: 2023/08/21 22:36:30 by gt-serst         ###   ########.fr       */
+/*   Updated: 2023/08/22 14:24:54 by gt-serst         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,15 +20,15 @@
 #define THINKING 1
 #define EATING 2
 
-typedef struct s_philo
+typedef struct s_phil
 {
 	int				pos;
 	int				rightFork;
 	int				leftFork;
 	int				lastMeal;
-	struct s_env	*env;	
+	struct s_env	*env;
 	pthread_t		tid;
-}	t_philo;
+}	t_phil;
 
 typedef struct s_env
 {
@@ -38,51 +38,53 @@ typedef struct s_env
 	int				time_to_sleep;
 	int				eat_count_max;
 	long 			time;
-	int				state[1000];
-	t_philo			philos[1000];
-	pthread_mutex_t forks[1000];
-	pthread_mutex_t state_change[1000];
-	pthread_mutex_t writing;
+	int				exit_status;
+	int				states[1000];
+	t_phil			phils[1000];
+	pthread_mutex_t m_forks[1000];
+	pthread_mutex_t m_states[1000];
+	pthread_mutex_t m_writing;
+	pthread_mutex_t	m_exit_status;
 }	t_env;
 
-void	is_eating(t_philo *philo)
+void	is_eating(t_phil *phil)
 {
-	pthread_mutex_lock(&philo->env->writing);
-	//printf("Philosopher %d is eating\n", philo->pos + 1);
-	pthread_mutex_unlock(&philo->env->writing);
+	pthread_mutex_lock(&phil->env->m_writing);
+	printf("Philosopher %d is eating\n", phil->pos + 1);
+	pthread_mutex_unlock(&phil->env->m_writing);
 }
 
-void	is_sleeping(t_philo *philo)
+void	is_sleeping(t_phil *phil)
 {
-	pthread_mutex_lock(&philo->env->writing);
-	//printf("Philosopher %d is sleeping\n", philo->pos + 1);
-	pthread_mutex_unlock(&philo->env->writing);
+	pthread_mutex_lock(&phil->env->m_writing);
+	printf("Philosopher %d is sleeping\n", phil->pos + 1);
+	pthread_mutex_unlock(&phil->env->m_writing);
 }
 
-void	take_forks(t_philo *philo)
+void	take_forks(t_phil *phil)
 {
-	pthread_mutex_lock(&philo->env->forks[(philo->pos)]);
-	pthread_mutex_lock(&philo->env->writing);
-	//printf("Philosopher %d has taken a fork\n", philo->pos + 1);
-	pthread_mutex_unlock(&philo->env->writing);
-	pthread_mutex_lock(&philo->env->forks[(philo->pos + 1) % philo->env->number_of_philosophers]);
-	pthread_mutex_lock(&philo->env->writing);
-	//printf("Philosopher %d has taken a fork\n", philo->pos + 1);
-	pthread_mutex_unlock(&philo->env->writing);
+	pthread_mutex_lock(&phil->env->m_forks[(phil->pos)]);
+	pthread_mutex_lock(&phil->env->m_writing);
+	printf("Philosopher %d has taken a fork\n", phil->pos + 1);
+	pthread_mutex_unlock(&phil->env->m_writing);
+	pthread_mutex_lock(&phil->env->m_forks[(phil->pos + 1) % phil->env->number_of_philosophers]);
+	pthread_mutex_lock(&phil->env->m_writing);
+	printf("Philosopher %d has taken a fork\n", phil->pos + 1);
+	pthread_mutex_unlock(&phil->env->m_writing);
 }
 
-int	is_dead(t_philo *philo)
+int	has_died(t_phil *phil)
 {
 	struct timeval current_time;
 
 	gettimeofday(&current_time, NULL);
-	philo->lastMeal = (current_time.tv_sec * 1000 + current_time.tv_usec / 1000) - philo->env->time;
-	printf("Time since last meal %d\n", philo->lastMeal);
-	if (philo->lastMeal >= 1000)
+	phil->lastMeal = (current_time.tv_sec * 1000 + current_time.tv_usec / 1000) - phil->env->time;
+	//printf("Time since last meal %d\n", philo->lastMeal);
+	if (phil->lastMeal >= 1000)
 	{
-		pthread_mutex_lock(&philo->env->writing);
-		printf("Philosopher %d died\n", philo->pos);
-		pthread_mutex_unlock(&philo->env->writing);
+		pthread_mutex_lock(&phil->env->m_writing);
+		printf("Philosopher %d died\n", phil->pos);
+		pthread_mutex_unlock(&phil->env->m_writing);
 		return (1);
 	}
 	return (0);
@@ -90,29 +92,44 @@ int	is_dead(t_philo *philo)
 
 void	*philosophers(void *data)
 {
-	t_philo	*philo;
+	t_phil	*phil;
+	int		exit_local;
 
-	philo = (t_philo *)data;
-	//if (is_dead(philo) == 1)
-	//	exit(0);
-	pthread_mutex_lock(&philo->env->writing);
+	phil = (t_phil *)data;
+	pthread_mutex_lock(&phil->env->m_exit_status);
+	exit_local = phil->env->exit_status;
+	pthread_mutex_unlock(&phil->env->m_exit_status);
+	if (exit_local != 0)
+		return (NULL);
+	if (has_died(phil) == 1)
+	{
+		pthread_mutex_lock(&phil->env->m_exit_status);
+		phil->env->exit_status = 1;
+		pthread_mutex_unlock(&phil->env->m_exit_status);
+	}
+	pthread_mutex_lock(&phil->env->m_writing);
 	//printf("Philosopher %d has entered the room\n", philo->pos + 1);
-	pthread_mutex_unlock(&philo->env->writing);
+	pthread_mutex_unlock(&phil->env->m_writing);
 	while (1)
 	{
-		take_forks(philo);
-		is_eating(philo);
+		pthread_mutex_lock(&phil->env->m_exit_status);
+		exit_local = phil->env->exit_status;
+		pthread_mutex_unlock(&phil->env->m_exit_status);
+		if (exit_local != 0)
+			return (NULL);
+		take_forks(phil);
+		is_eating(phil);
 		usleep(10000);
-		pthread_mutex_lock(&philo->env->writing);
+		pthread_mutex_lock(&phil->env->m_writing);
 		//printf("Philosopher %d has finished eating\n", philo->pos + 1);
-		pthread_mutex_unlock(&philo->env->writing);
-		pthread_mutex_unlock(&philo->env->forks[philo->pos]);
-		pthread_mutex_unlock(&philo->env->forks[(philo->pos + 1) % philo->env->number_of_philosophers]);
-		is_sleeping(philo);
+		pthread_mutex_unlock(&phil->env->m_writing);
+		pthread_mutex_unlock(&phil->env->m_forks[phil->pos]);
+		pthread_mutex_unlock(&phil->env->m_forks[(phil->pos + 1) % phil->env->number_of_philosophers]);
+		is_sleeping(phil);
 		usleep(10000);
-		pthread_mutex_lock(&philo->env->writing);
+		pthread_mutex_lock(&phil->env->m_writing);
 		//printf("Philosopher %d has finished sleeping\n", philo->pos + 1);
-		pthread_mutex_unlock(&philo->env->writing);
+		pthread_mutex_unlock(&phil->env->m_writing);
 	}
 }
 
@@ -124,40 +141,41 @@ int	create_threads(t_env *env)
 	i = 0;
 	while (i < env->number_of_philosophers)
 	{
-		err = pthread_create(&env->philos[i].tid, NULL, philosophers, &(env->philos[i]));
+		err = pthread_create(&env->phils[i].tid, NULL, philosophers, &(env->phils[i]));
 		if (err != 0)
-		{
-			printf("Hello\n");
 			return (0);
-		}
 		i++;
 	}
 	return (1);
 }
 
-void	join_threads(t_env *env)
+int	join_threads(t_env *env)
 {
 	int	i;
+	int	err;
 
 	i = 0;
 	while (i < env->number_of_philosophers)
 	{
-		pthread_join(env->philos[i].tid, NULL);
+		err = pthread_join(env->phils[i].tid, NULL);
+		if (err != 0)
+			return (0);
 		i++;
 	}
+	return (1);
 }
 
-void	init_philos(t_env *env)
+void	init_phils(t_env *env)
 {
 	int	i;
 
 	i = 0;
 	while (i < env->number_of_philosophers)
 	{
-		env->philos[i].pos = i;
-		env->philos[i].rightFork = (i + 1) % env->number_of_philosophers;
-		env->philos[i].leftFork = i;
-		env->philos[i].env = env;
+		env->phils[i].pos = i;
+		env->phils[i].rightFork = (i + 1) % env->number_of_philosophers;
+		env->phils[i].leftFork = i;
+		env->phils[i].env = env;
 		i++;
 	}
 }
@@ -169,11 +187,12 @@ void	init_mutexes(t_env *env)
 	i = 0;
 	while (i < env->number_of_philosophers)
 	{
-		pthread_mutex_init(&env->forks[i], NULL);
-		pthread_mutex_init(&env->state_change[i], NULL);
+		pthread_mutex_init(&env->m_forks[i], NULL);
+		pthread_mutex_init(&env->m_states[i], NULL);
 		i++;
 	}
-	pthread_mutex_init(&env->writing, NULL);
+	pthread_mutex_init(&env->m_writing, NULL);
+	pthread_mutex_init(&env->m_exit_status, NULL);
 }
 
 void	init_struct(t_env *env, char **argv)
@@ -182,7 +201,8 @@ void	init_struct(t_env *env, char **argv)
 	env->time_to_die = atoi(argv[2]);
 	env->time_to_eat = atoi(argv[3]);
 	env->time_to_sleep = atoi(argv[4]);
-	init_philos(env);
+	env->exit_status = 0;
+	init_phils(env);
 	init_mutexes(env);
 }
 
@@ -193,11 +213,12 @@ void	destroy_mutexes(t_env *env)
 	i = 0;
 	while (i < env->number_of_philosophers)
 	{
-		pthread_mutex_destroy(&env->forks[i]);
-		pthread_mutex_destroy(&env->state_change[i]);
+		pthread_mutex_destroy(&env->m_forks[i]);
+		pthread_mutex_destroy(&env->m_states[i]);
 		i++;
 	}
-	pthread_mutex_destroy(&env->writing);
+	pthread_mutex_destroy(&env->m_writing);
+	pthread_mutex_destroy(&env->m_exit_status);
 }
 
 int	main(int argc, char **argv)
@@ -208,12 +229,13 @@ int	main(int argc, char **argv)
 	gettimeofday(&current_time, NULL);
 	env.time = current_time.tv_sec * 1000 + current_time.tv_usec / 1000;
 	//printf("seconds : %ld\nmicro seconds : %d",current_time.tv_sec, current_time.tv_usec);
-  	printf("milliseconds : %ld\n", env.time);
+  	//printf("milliseconds : %ld\n", env.time);
 	(void)argc;
 	init_struct(&env, argv);
 	if (!create_threads(&env))
 		return (EXIT_FAILURE);
-	join_threads(&env);
+	if (!join_threads(&env))
+		return (EXIT_FAILURE);
 	destroy_mutexes(&env);
 	return (EXIT_SUCCESS);
 }
