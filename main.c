@@ -6,7 +6,7 @@
 /*   By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/21 22:34:21 by gt-serst          #+#    #+#             */
-/*   Updated: 2023/08/22 14:24:54 by gt-serst         ###   ########.fr       */
+/*   Updated: 2023/08/22 14:44:52 by gt-serst         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,21 +23,21 @@
 typedef struct s_phil
 {
 	int				pos;
-	int				rightFork;
-	int				leftFork;
-	int				lastMeal;
-	struct s_env	*env;
+	int				right_fork;
+	int				left_fork;
+	int				last_meal;
 	pthread_t		tid;
+	struct s_env	*env;
 }	t_phil;
 
 typedef struct s_env
 {
-	int				number_of_philosophers;
+	int				num_philosophers;
 	int				time_to_die;
 	int				time_to_eat;
 	int				time_to_sleep;
 	int				eat_count_max;
-	long 			time;
+	long 			init_time;
 	int				exit_status;
 	int				states[1000];
 	t_phil			phils[1000];
@@ -67,7 +67,7 @@ void	take_forks(t_phil *phil)
 	pthread_mutex_lock(&phil->env->m_writing);
 	printf("Philosopher %d has taken a fork\n", phil->pos + 1);
 	pthread_mutex_unlock(&phil->env->m_writing);
-	pthread_mutex_lock(&phil->env->m_forks[(phil->pos + 1) % phil->env->number_of_philosophers]);
+	pthread_mutex_lock(&phil->env->m_forks[(phil->pos + 1) % phil->env->num_philosophers]);
 	pthread_mutex_lock(&phil->env->m_writing);
 	printf("Philosopher %d has taken a fork\n", phil->pos + 1);
 	pthread_mutex_unlock(&phil->env->m_writing);
@@ -78,9 +78,9 @@ int	has_died(t_phil *phil)
 	struct timeval current_time;
 
 	gettimeofday(&current_time, NULL);
-	phil->lastMeal = (current_time.tv_sec * 1000 + current_time.tv_usec / 1000) - phil->env->time;
-	//printf("Time since last meal %d\n", philo->lastMeal);
-	if (phil->lastMeal >= 1000)
+	phil->last_meal = (current_time.tv_sec * 1000 + current_time.tv_usec / 1000) - phil->env->init_time;
+	//printf("Time since last meal %d\n", philo->last_meal);
+	if (phil->last_meal >= 1000)
 	{
 		pthread_mutex_lock(&phil->env->m_writing);
 		printf("Philosopher %d died\n", phil->pos);
@@ -107,9 +107,9 @@ void	*philosophers(void *data)
 		phil->env->exit_status = 1;
 		pthread_mutex_unlock(&phil->env->m_exit_status);
 	}
-	pthread_mutex_lock(&phil->env->m_writing);
+	//pthread_mutex_lock(&phil->env->m_writing);
 	//printf("Philosopher %d has entered the room\n", philo->pos + 1);
-	pthread_mutex_unlock(&phil->env->m_writing);
+	//pthread_mutex_unlock(&phil->env->m_writing);
 	while (1)
 	{
 		pthread_mutex_lock(&phil->env->m_exit_status);
@@ -120,16 +120,16 @@ void	*philosophers(void *data)
 		take_forks(phil);
 		is_eating(phil);
 		usleep(10000);
-		pthread_mutex_lock(&phil->env->m_writing);
+		//pthread_mutex_lock(&phil->env->m_writing);
 		//printf("Philosopher %d has finished eating\n", philo->pos + 1);
-		pthread_mutex_unlock(&phil->env->m_writing);
+		//pthread_mutex_unlock(&phil->env->m_writing);
 		pthread_mutex_unlock(&phil->env->m_forks[phil->pos]);
-		pthread_mutex_unlock(&phil->env->m_forks[(phil->pos + 1) % phil->env->number_of_philosophers]);
+		pthread_mutex_unlock(&phil->env->m_forks[(phil->pos + 1) % phil->env->num_philosophers]);
 		is_sleeping(phil);
 		usleep(10000);
-		pthread_mutex_lock(&phil->env->m_writing);
+		//pthread_mutex_lock(&phil->env->m_writing);
 		//printf("Philosopher %d has finished sleeping\n", philo->pos + 1);
-		pthread_mutex_unlock(&phil->env->m_writing);
+		//pthread_mutex_unlock(&phil->env->m_writing);
 	}
 }
 
@@ -139,7 +139,7 @@ int	create_threads(t_env *env)
 	int	err;
 
 	i = 0;
-	while (i < env->number_of_philosophers)
+	while (i < env->num_philosophers)
 	{
 		err = pthread_create(&env->phils[i].tid, NULL, philosophers, &(env->phils[i]));
 		if (err != 0)
@@ -155,7 +155,7 @@ int	join_threads(t_env *env)
 	int	err;
 
 	i = 0;
-	while (i < env->number_of_philosophers)
+	while (i < env->num_philosophers)
 	{
 		err = pthread_join(env->phils[i].tid, NULL);
 		if (err != 0)
@@ -170,11 +170,11 @@ void	init_phils(t_env *env)
 	int	i;
 
 	i = 0;
-	while (i < env->number_of_philosophers)
+	while (i < env->num_philosophers)
 	{
 		env->phils[i].pos = i;
-		env->phils[i].rightFork = (i + 1) % env->number_of_philosophers;
-		env->phils[i].leftFork = i;
+		env->phils[i].right_fork = (i + 1) % env->num_philosophers;
+		env->phils[i].left_fork = i;
 		env->phils[i].env = env;
 		i++;
 	}
@@ -185,7 +185,7 @@ void	init_mutexes(t_env *env)
 	int	i;
 
 	i = 0;
-	while (i < env->number_of_philosophers)
+	while (i < env->num_philosophers)
 	{
 		pthread_mutex_init(&env->m_forks[i], NULL);
 		pthread_mutex_init(&env->m_states[i], NULL);
@@ -197,7 +197,7 @@ void	init_mutexes(t_env *env)
 
 void	init_struct(t_env *env, char **argv)
 {
-	env->number_of_philosophers = atoi(argv[1]);
+	env->num_philosophers = atoi(argv[1]);
 	env->time_to_die = atoi(argv[2]);
 	env->time_to_eat = atoi(argv[3]);
 	env->time_to_sleep = atoi(argv[4]);
@@ -211,7 +211,7 @@ void	destroy_mutexes(t_env *env)
 	int	i;
 
 	i = 0;
-	while (i < env->number_of_philosophers)
+	while (i < env->num_philosophers)
 	{
 		pthread_mutex_destroy(&env->m_forks[i]);
 		pthread_mutex_destroy(&env->m_states[i]);
@@ -227,7 +227,7 @@ int	main(int argc, char **argv)
 	struct timeval current_time;
 
 	gettimeofday(&current_time, NULL);
-	env.time = current_time.tv_sec * 1000 + current_time.tv_usec / 1000;
+	env.init_time = current_time.tv_sec * 1000 + current_time.tv_usec / 1000;
 	//printf("seconds : %ld\nmicro seconds : %d",current_time.tv_sec, current_time.tv_usec);
   	//printf("milliseconds : %ld\n", env.time);
 	(void)argc;
