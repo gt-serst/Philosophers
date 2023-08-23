@@ -6,7 +6,7 @@
 /*   By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/21 22:34:21 by gt-serst          #+#    #+#             */
-/*   Updated: 2023/08/22 21:47:58 by gt-serst         ###   ########.fr       */
+/*   Updated: 2023/08/23 14:52:28 by gt-serst         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,29 +52,47 @@ long	get_current_time(void)
 	return (time);
 }
 
+void	ft_usleep(long int time_in_ms)
+{
+	long int	start_time;
+
+	start_time = 0;
+	start_time = get_current_time();
+	while ((get_current_time() - start_time) < time_in_ms)
+		usleep(time_in_ms / 10);
+}
+
 void	print(char *message, t_env *phil, int index)
 {
 	long	time;
 
 	time = get_current_time();
 	pthread_mutex_lock(&phil->writing);
-	printf(message, time, index + 1);
+	printf(message, time, index);
 	pthread_mutex_unlock(&phil->writing);
 }
+
 void	is_eating(t_env *phil)
 {
 	pthread_mutex_lock(phil->left_fork);
 	print("%ld %d has taken a fork\n", phil, phil->index);
 	pthread_mutex_lock(phil->right_fork);
 	print("%ld %d has taken a fork\n", phil, phil->index);
+	//pthread_mutex_lock(&phil->id);
 	phil->last_meal = get_current_time();
 	phil->is_currently_eating = 1;
+	//pthread_mutex_unlock(&phil->id);
 	print("%ld %d is eating\n", phil, phil->index);
-	usleep(phil->time_to_eat);
+	ft_usleep(phil->time_to_eat);
+	//pthread_mutex_lock(&phil->id);
 	phil->is_currently_eating = 0;
-	pthread_mutex_lock(&phil->id);
-	phil->eat_count++;
-	pthread_mutex_unlock(&phil->id);
+	//pthread_mutex_unlock(&phil->id);
+	if (phil->eat_count_max != -1)
+	{
+		pthread_mutex_lock(&phil->id);
+		phil->eat_count++;
+		pthread_mutex_unlock(&phil->id);
+	}
 	pthread_mutex_unlock(phil->left_fork);
 	pthread_mutex_unlock(phil->right_fork);
 }
@@ -82,7 +100,7 @@ void	is_eating(t_env *phil)
 void	is_sleeping(t_env *phil)
 {
 	print("%ld %d is sleeping\n", phil, phil->index);
-	usleep(phil->time_to_sleep);
+	ft_usleep(phil->time_to_sleep);
 }
 
 void	*philosophers(void *data)
@@ -90,10 +108,13 @@ void	*philosophers(void *data)
 	t_env	*phil;
 
 	phil = (t_env *)data;
+	if (phil->index % 2 == 0)
+		ft_usleep(phil->time_to_eat / 10);
+	print("%ld %d is entered the room\n", phil, phil->index);
 	phil->eat_count = 0;
 	phil->never_ate = 0;
 	phil->is_currently_eating = 0;
-	if (phil->last_meal - phil->init_time >= phil->time_to_die)
+	if (get_current_time() - phil->init_time >= phil->time_to_die)
 	{
 		phil->never_ate = 1;
 		return (NULL);
@@ -117,19 +138,19 @@ int	create_threads(t_phil *phil)
 	init_time = get_current_time();
 	while (i < phil->env->num_philosophers)
 	{
-		phil->env[i].index = i;
+		phil->env[i].index = i + 1;
 		phil->env[i].init_time = init_time;
 		phil->env[i].last_meal = get_current_time();
 		err = pthread_create(&phil->env[i].tid, NULL, philosophers, &(phil->env[i]));
 		if (err != 0)
 			return (0);
-		usleep(100);
+		ft_usleep(10);
 		i++;
 	}
 	return (1);
 }
 
-void	init_phil(t_phil *phil, char **argv)
+void	init_phil(t_phil *phil)
 {
 	int	i;
 
@@ -140,8 +161,7 @@ void	init_phil(t_phil *phil, char **argv)
 		phil->env[i].time_to_die = phil->env->time_to_die;
 		phil->env[i].time_to_eat = phil->env->time_to_eat;
 		phil->env[i].time_to_sleep = phil->env->time_to_sleep;
-		if (argv[5])
-			phil->env[i].eat_count_max = phil->env->eat_count_max;
+		phil->env[i].eat_count_max = phil->env->eat_count_max;
 		i++;
 	}
 }
@@ -177,17 +197,22 @@ int	init_mutexes(t_phil *phil)
 
 int	init_struct(t_phil *phil, char **argv)
 {
-	phil->env = (t_env *)malloc(sizeof(t_env) * atoi(argv[1]));
+	phil->env = (t_env *)malloc(sizeof(t_env) * atoi(argv[1]) + 1);
 	if (!phil->env)
 		return (0);
 	phil->env[0].num_philosophers = atoi(argv[1]);
 	phil->env[0].time_to_die = atoi(argv[2]);
 	phil->env[0].time_to_eat = atoi(argv[3]);
 	phil->env[0].time_to_sleep = atoi(argv[4]);
+	if (phil->env[0].num_philosophers < 0 || phil->env[0].time_to_die < 0
+			|| phil->env[0].time_to_eat < 0 || phil->env[0].time_to_sleep < 0)
+		return (0);
 	if (argv[5])
 		phil->env[0].eat_count_max = atoi(argv[5]);
-	init_phil(phil, argv);
-	phil->forks = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t) * atoi(argv[1]));
+	else
+		phil->env[0].eat_count_max = -1;
+	init_phil(phil);
+	phil->forks = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t) * atoi(argv[1]) + 1);
 	if (!phil->forks)
 		return (0);
 	if (!init_mutexes(phil))
@@ -210,46 +235,42 @@ int	destroy_mutexes(t_phil *phil)
 	return (1);
 }
 
-/*
-int	join_threads(t_phil *phil)
+int	everyone_is_full(t_phil *phil)
 {
 	int	i;
-	int	err;
+	int	count;
 
 	i = 0;
+	count = 0;
 	while (i < phil->env->num_philosophers)
 	{
-		err = pthread_join(phil->env[i].tid, NULL);
-		if (err != 0)
-			return (0);
-		i++;
-	}
-	return (1);
-}
-*/
-
-int	stop_eating(t_phil *phil)
-{
-	int	i;
-
-	i = 0;
-	while (i < phil->env->num_philosophers)
-	{
+		if (phil->env->eat_count_max != -1 && phil->env[i].eat_count >= phil->env->eat_count_max)
+			count++;
+		if (count == phil->env->num_philosophers)
+			return (1);
 		i++;
 	}
 	return (0);
+}
+
+void	free_all(t_phil *phil)
+{
+	if (phil->env)
+		free(phil->env);
+	if (phil->forks)
+		free(phil->forks);
 }
 
 int	has_died(t_phil *phil)
 {
 	int	i;
 
-	while (!stop_eating(phil))
+	while (!everyone_is_full(phil))
 	{
 		i = 0;
 		while (i < phil->env->num_philosophers)
 		{
-			if (get_current_time() - phil->env[i].last_meal >= phil->env->time_to_die && phil->env[i].is_currently_eating == 0)
+			if (get_current_time() - phil->env[i].last_meal >= phil->env->time_to_die)
 			{
 				print("%ld %d died\n", &phil->env[i], phil->env[i].index);
 				return (1);
@@ -267,12 +288,20 @@ int	main(int argc, char **argv)
 	if (argc == 5 || argc == 6)
 	{
 		if (!init_struct(&phil, argv))
+		{
+			free_all(&phil);
 			return (EXIT_FAILURE);
+		}
 		if (!create_threads(&phil))
+		{
+			destroy_mutexes(&phil);
+			free_all(&phil);
 			return (EXIT_FAILURE);
+		}
 		if (has_died(&phil))
 		{
 			destroy_mutexes(&phil);
+			free_all(&phil);
 			return (EXIT_FAILURE);
 		}
 	}
@@ -282,5 +311,6 @@ int	main(int argc, char **argv)
 		return (EXIT_FAILURE);
 	}
 	destroy_mutexes(&phil);
+	free_all(&phil);
 	return (EXIT_SUCCESS);
 }
