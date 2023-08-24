@@ -6,7 +6,7 @@
 /*   By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/21 22:34:21 by gt-serst          #+#    #+#             */
-/*   Updated: 2023/08/23 19:39:29 by gt-serst         ###   ########.fr       */
+/*   Updated: 2023/08/24 14:58:35 by gt-serst         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,6 +34,7 @@ static int	has_died(t_p *p)
 	while (not_full(p))
 	{
 		i = 0;
+		pthread_mutex_lock(&p->a.end);
 		while (i < p->a.nb_phil)
 		{
 			if (get_current_time() - p->ph[i].last_meal >= p->a.time_to_die)
@@ -43,6 +44,7 @@ static int	has_died(t_p *p)
 			}
 			i++;
 		}
+		pthread_mutex_unlock(&p->a.end);
 	}
 	return (0);
 }
@@ -54,6 +56,7 @@ static void	stop(t_p *p)
 	has_died(p);
 	pthread_mutex_destroy(&p->a.writing);
 	pthread_mutex_destroy(&p->a.eating);
+	pthread_mutex_destroy(&p->a.end);
 	i = -1;
 	while (++i < p->a.nb_phil)
 		pthread_mutex_destroy(&p->a.forks[i]);

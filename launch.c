@@ -6,7 +6,7 @@
 /*   By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/23 16:25:15 by gt-serst          #+#    #+#             */
-/*   Updated: 2023/08/23 19:39:27 by gt-serst         ###   ########.fr       */
+/*   Updated: 2023/08/24 14:56:09 by gt-serst         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,12 +35,6 @@ static void	is_eating(t_phil *ph)
 	pthread_mutex_unlock(ph->right_fork);
 }
 
-static void	is_sleeping(t_phil *ph)
-{
-	print_status("%ld %d is sleeping\n", ph, ph->index);
-	ft_usleep(ph->arg->time_to_sleep);
-}
-
 static void	*philosophers(void *data)
 {
 	t_phil	*ph;
@@ -48,15 +42,11 @@ static void	*philosophers(void *data)
 	ph = (t_phil *)data;
 	if (ph->index % 2 == 0)
 		ft_usleep(ph->arg->time_to_eat / 10);
-	if (get_current_time() - ph->arg->init_time >= ph->arg->time_to_die)
-	{
-		ph->never_ate = 1;
-		return (NULL);
-	}
 	while (ph->arg->nb_eat_max == -1 || !ph->arg->all_eaten_ntimes)
 	{
 		is_eating(ph);
-		is_sleeping(ph);
+		print_status("%ld %d is sleeping\n", ph, ph->index);
+		ft_usleep(ph->arg->time_to_sleep);
 		print_status("%ld %d is thinking\n", ph, ph->index);
 	}
 	return (NULL);
@@ -75,7 +65,6 @@ int	launch_threads(t_p *p)
 		p->ph[i].last_meal = get_current_time();
 		if (pthread_create(&p->ph[i].tid, NULL, philosophers, &(p->ph[i])) != 0)
 			return(ft_exit("Thread not launch properly\n"));
-		ft_usleep(10);
 		i++;
 	}
 	return (1);

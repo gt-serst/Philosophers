@@ -6,7 +6,7 @@
 /*   By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/23 16:27:09 by gt-serst          #+#    #+#             */
-/*   Updated: 2023/08/23 18:35:48 by gt-serst         ###   ########.fr       */
+/*   Updated: 2023/08/24 14:46:45 by gt-serst         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,12 +24,12 @@ int	ft_strlen(const char *s)
 
 long	get_current_time(void)
 {
-	long			time;
 	struct timeval	current_time;
+	long			timestamp;
 
 	gettimeofday(&current_time, NULL);
-	time = current_time.tv_sec * 1000 + current_time.tv_usec / 1000;
-	return (time);
+	timestamp = current_time.tv_sec * 1000 + current_time.tv_usec / 1000;
+	return (timestamp);
 }
 
 void	ft_usleep(long int time_in_ms)
@@ -44,11 +44,11 @@ void	ft_usleep(long int time_in_ms)
 
 void	print_status(char *message, t_phil *ph, int index)
 {
-	long	time;
+	int	timestamp;
 
-	time = get_current_time();
 	pthread_mutex_lock(&ph->arg->writing);
-	printf(message, time, index);
+	timestamp = get_current_time() - ph->arg->init_time;
+	printf(message, timestamp, index);
 	pthread_mutex_unlock(&ph->arg->writing);
 }
 

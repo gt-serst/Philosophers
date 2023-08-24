@@ -6,7 +6,7 @@
 /*   By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/23 14:59:15 by gt-serst          #+#    #+#             */
-/*   Updated: 2023/08/23 19:09:00 by gt-serst         ###   ########.fr       */
+/*   Updated: 2023/08/24 14:52:35 by gt-serst         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -89,6 +89,8 @@ static int	init_mutexes(t_p *p)
 	if (pthread_mutex_init(&p->a.writing, NULL) != 0)
 		return (0);
 	if (pthread_mutex_init(&p->a.eating, NULL) != 0)
+		return (0);
+	if (pthread_mutex_init(&p->a.end, NULL) != 0)
 		return (0);
 	i = 0;
 	while (i < p->a.nb_phil)
