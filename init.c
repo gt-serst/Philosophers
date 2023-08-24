@@ -6,7 +6,7 @@
 /*   By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/23 14:59:15 by gt-serst          #+#    #+#             */
-/*   Updated: 2023/08/24 14:52:35 by gt-serst         ###   ########.fr       */
+/*   Updated: 2023/08/24 20:14:53 by gt-serst         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,9 +88,9 @@ static int	init_mutexes(t_p *p)
 
 	if (pthread_mutex_init(&p->a.writing, NULL) != 0)
 		return (0);
-	if (pthread_mutex_init(&p->a.eating, NULL) != 0)
+	if (pthread_mutex_init(&p->a.eat, NULL) != 0)
 		return (0);
-	if (pthread_mutex_init(&p->a.end, NULL) != 0)
+	if (pthread_mutex_init(&p->a.death, NULL) != 0)
 		return (0);
 	i = 0;
 	while (i < p->a.nb_phil)
@@ -118,8 +118,6 @@ int	init_phil(t_p *p)
 	{
 		p->ph[i].index = i + 1;
 		p->ph[i].nb_eat = 0;
-		p->ph[i].never_ate = 0;
-		p->ph[i].is_currently_eating = 0;
 		i++;
 	}
 	p->a.forks = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t) * p->a.nb_phil + 1);

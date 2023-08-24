@@ -6,7 +6,7 @@
 /*   By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/21 22:34:21 by gt-serst          #+#    #+#             */
-/*   Updated: 2023/08/24 14:58:35 by gt-serst         ###   ########.fr       */
+/*   Updated: 2023/08/24 20:06:43 by gt-serst         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,34 +17,41 @@ static int	not_full(t_p *p)
 	int	i;
 
 	i = 0;
+	pthread_mutex_lock(&p->a.eat);
 	while (i < p->a.nb_phil)
 	{
 		if (p->a.nb_eat_max == -1 || p->ph[i].nb_eat < p->a.nb_eat_max)
+		{
+			pthread_mutex_unlock(&p->a.eat);
 			return (1);
+		}
 		i++;
 	}
-	p->a.all_eaten_ntimes = 1;
+	p->a.all_eaten = 1;
+	pthread_mutex_unlock(&p->a.eat);
 	return (0);
 }
 
-static int	has_died(t_p *p)
+static int	death_monitor(t_p *p)
 {
 	int	i;
 
 	while (not_full(p))
 	{
 		i = 0;
-		pthread_mutex_lock(&p->a.end);
 		while (i < p->a.nb_phil)
 		{
+			pthread_mutex_lock(&p->a.death);
 			if (get_current_time() - p->ph[i].last_meal >= p->a.time_to_die)
 			{
-				print_status("%ld %d died\n", &p->ph[i], p->ph[i].index);
+				p->a.is_dead = 1;
+				pthread_mutex_unlock(&p->a.death);
+				print_death("%ld %d died\n", &p->ph[i], p->ph[i].index);
 				return (1);
 			}
+			pthread_mutex_unlock(&p->a.death);
 			i++;
 		}
-		pthread_mutex_unlock(&p->a.end);
 	}
 	return (0);
 }
@@ -53,13 +60,22 @@ static void	stop(t_p *p)
 {
 	int	i;
 
-	has_died(p);
+	death_monitor(p);
+	i = 0;
+	while (i < p->a.nb_phil)
+	{
+		pthread_join(p->ph[i].tid, NULL);
+		i++;
+	}
 	pthread_mutex_destroy(&p->a.writing);
-	pthread_mutex_destroy(&p->a.eating);
-	pthread_mutex_destroy(&p->a.end);
-	i = -1;
-	while (++i < p->a.nb_phil)
+	pthread_mutex_destroy(&p->a.eat);
+	pthread_mutex_destroy(&p->a.death);
+	i = 0;
+	while (i < p->a.nb_phil)
+	{
 		pthread_mutex_destroy(&p->a.forks[i]);
+		i++;
+	}
 	free(p->ph);
 	free(p->a.forks);
 }
@@ -80,5 +96,11 @@ int	main(int argc, char **argv)
 		return (EXIT_FAILURE);
 	}
 	stop(&p);
-	return (EXIT_SUCCESS);
+	return (EXIT_FAILURE);
+/*
+	if (death_monitor(&p))
+		return (EXIT_FAILURE);
+	else
+		return (EXIT_SUCCESS);
+*/
 }
