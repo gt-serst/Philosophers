@@ -6,7 +6,7 @@
 /*   By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/23 14:59:44 by gt-serst          #+#    #+#             */
-/*   Updated: 2023/08/25 16:46:10 by gt-serst         ###   ########.fr       */
+/*   Updated: 2023/08/25 18:16:51 by gt-serst         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,10 +27,12 @@ typedef struct s_arg
 	int				time_to_sleep;
 	int				nb_eat_max;
 	int				init_time;
+	int				eat_max;
 	int				stop_condition;
 	pthread_mutex_t	*forks;
 	pthread_mutex_t	writing;
 	pthread_mutex_t	death;
+	pthread_mutex_t	eat_count;
 }	t_arg;
 
 typedef struct s_phil

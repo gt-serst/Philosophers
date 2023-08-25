@@ -6,11 +6,11 @@
 /*   By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/23 16:25:15 by gt-serst          #+#    #+#             */
-/*   Updated: 2023/08/25 16:45:42 by gt-serst         ###   ########.fr       */
+/*   Updated: 2023/08/25 18:16:36 by gt-serst         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "philo.h"
+#include "../includes/philo.h"
 
 static void	is_eating(t_phil *ph)
 {
@@ -22,6 +22,12 @@ static void	is_eating(t_phil *ph)
 	ph->last_meal = get_current_time();
 	ph->nb_eat++;
 	pthread_mutex_unlock(&ph->meal);
+	if (ph->nb_eat == ph->arg->nb_eat_max)
+	{
+		pthread_mutex_lock(&ph->arg->eat_count);
+		ph->arg->eat_max++;
+		pthread_mutex_unlock(&ph->arg->eat_count);
+	}
 	print_status("%ld %d is eating\n", ph, ph->index);
 	ft_usleep_status(ph, ph->arg->time_to_eat);
 	pthread_mutex_unlock(&ph->arg->forks[ph->left_fork]);
@@ -46,7 +52,7 @@ static void	*philosophers(void *data)
 
 	ph = (t_phil *)data;
 	if (ph->index % 2 == 0)
-		ft_usleep(ph->arg->time_to_eat / 10);
+		ft_usleep(10);
 	while (!death_checker(ph))
 	{
 		is_eating(ph);
@@ -62,6 +68,7 @@ int	launch_threads(t_p *p)
 	int		i;
 
 	i = 0;
+	p->a.eat_max = 0;
 	p->a.stop_condition = 0;
 	p->a.init_time = get_current_time();
 	while (i < p->a.nb_phil)

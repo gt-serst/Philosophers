@@ -6,21 +6,24 @@
 /*   By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/25 11:39:16 by gt-serst          #+#    #+#             */
-/*   Updated: 2023/08/25 16:43:38 by gt-serst         ###   ########.fr       */
+/*   Updated: 2023/08/25 18:08:39 by gt-serst         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "philo.h"
+#include "../includes/philo.h"
 
 static int	monitor_eat(t_phil *ph)
 {
-	if (ph->arg->nb_eat_max != -1 && ph->nb_eat >= ph->arg->nb_eat_max)
+	pthread_mutex_lock(&ph->arg->eat_count);
+	if (ph->arg->nb_eat_max != -1 && ph->arg->eat_max == ph->arg->nb_phil)
 	{
+		pthread_mutex_unlock(&ph->arg->eat_count);
 		pthread_mutex_lock(&ph->arg->death);
 		ph->arg->stop_condition = 1;
 		pthread_mutex_unlock(&ph->arg->death);
 		return (1);
 	}
+	pthread_mutex_unlock(&ph->arg->eat_count);
 	return (0);
 }
 
@@ -74,6 +77,7 @@ void	exit_threads(t_p *p)
 	}
 	pthread_mutex_destroy(&p->a.writing);
 	pthread_mutex_destroy(&p->a.death);
+	pthread_mutex_destroy(&p->a.eat_count);
 	i = -1;
 	while (++i < p->a.nb_phil)
 	{

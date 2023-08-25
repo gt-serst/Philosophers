@@ -6,11 +6,11 @@
 /*   By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/21 22:34:21 by gt-serst          #+#    #+#             */
-/*   Updated: 2023/08/25 16:44:21 by gt-serst         ###   ########.fr       */
+/*   Updated: 2023/08/25 17:48:15 by gt-serst         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "philo.h"
+#include "../includes/philo.h"
 
 int	ft_strlen(const char *s)
 {

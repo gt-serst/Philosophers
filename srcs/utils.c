@@ -6,11 +6,11 @@
 /*   By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/23 16:27:09 by gt-serst          #+#    #+#             */
-/*   Updated: 2023/08/25 16:44:17 by gt-serst         ###   ########.fr       */
+/*   Updated: 2023/08/25 17:48:22 by gt-serst         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "philo.h"
+#include "../includes/philo.h"
 
 long	get_current_time(void)
 {

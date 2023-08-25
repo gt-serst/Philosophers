@@ -6,7 +6,7 @@
 #    By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2023/08/25 17:00:33 by gt-serst          #+#    #+#              #
-#    Updated: 2023/08/25 17:01:56 by gt-serst         ###   ########.fr        #
+#    Updated: 2023/08/25 18:16:06 by gt-serst         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -14,7 +14,7 @@ NAME				= philo
 
 CC					= gcc
 
-CFLAGS				= -Wall -Wextra -Werror
+CFLAGS				= -Wall -Wextra -Werror -pthread
 
 RM					= rm -rf
 

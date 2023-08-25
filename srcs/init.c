@@ -6,11 +6,11 @@
 /*   By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/23 14:59:15 by gt-serst          #+#    #+#             */
-/*   Updated: 2023/08/25 16:45:18 by gt-serst         ###   ########.fr       */
+/*   Updated: 2023/08/25 18:01:57 by gt-serst         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "philo.h"
+#include "../includes/philo.h"
 
 static int	ft_atoi(const char *str)
 {
@@ -89,6 +89,8 @@ static int	init_mutexes(t_p *p)
 	if (pthread_mutex_init(&p->a.writing, NULL) != 0)
 		return (0);
 	if (pthread_mutex_init(&p->a.death, NULL) != 0)
+		return (0);
+	if (pthread_mutex_init(&p->a.eat_count, NULL) != 0)
 		return (0);
 	i = 0;
 	while (i < p->a.nb_phil)
