@@ -6,7 +6,7 @@
 /*   By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/23 14:59:15 by gt-serst          #+#    #+#             */
-/*   Updated: 2023/08/24 20:14:53 by gt-serst         ###   ########.fr       */
+/*   Updated: 2023/08/25 16:45:18 by gt-serst         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,8 +88,6 @@ static int	init_mutexes(t_p *p)
 
 	if (pthread_mutex_init(&p->a.writing, NULL) != 0)
 		return (0);
-	if (pthread_mutex_init(&p->a.eat, NULL) != 0)
-		return (0);
 	if (pthread_mutex_init(&p->a.death, NULL) != 0)
 		return (0);
 	i = 0;
@@ -97,13 +95,8 @@ static int	init_mutexes(t_p *p)
 	{
 		if (pthread_mutex_init(&p->a.forks[i], NULL) != 0)
 			return (0);
-		i++;
-	}
-	i = 0;
-	while (i < p->a.nb_phil)
-	{
-		p->ph[i].left_fork = &p->a.forks[i];
-		p->ph[i].right_fork = &p->a.forks[(i + 1) % p->a.nb_phil];
+		if (pthread_mutex_init(&p->ph[i].meal, NULL) != 0)
+			return (0);
 		i++;
 	}
 	return (1);
@@ -117,10 +110,13 @@ int	init_phil(t_p *p)
 	while (i < p->a.nb_phil)
 	{
 		p->ph[i].index = i + 1;
+		p->ph[i].left_fork = i;
+		p->ph[i].right_fork = (i + 1) % p->a.nb_phil;
 		p->ph[i].nb_eat = 0;
 		i++;
 	}
-	p->a.forks = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t) * p->a.nb_phil + 1);
+	p->a.forks = (pthread_mutex_t *)malloc
+		(sizeof(pthread_mutex_t) * p->a.nb_phil + 1);
 	if (!p->a.forks)
 		return (0);
 	if (!init_mutexes(p))

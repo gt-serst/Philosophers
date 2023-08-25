@@ -6,7 +6,7 @@
 /*   By: gt-serst <gt-serst@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/23 16:25:15 by gt-serst          #+#    #+#             */
-/*   Updated: 2023/08/24 20:35:20 by gt-serst         ###   ########.fr       */
+/*   Updated: 2023/08/25 16:45:42 by gt-serst         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,34 +14,24 @@
 
 static void	is_eating(t_phil *ph)
 {
-	pthread_mutex_lock(ph->left_fork);
+	pthread_mutex_lock(&ph->arg->forks[ph->left_fork]);
 	print_status("%ld %d has taken a fork\n", ph, ph->index);
-	if (ph->left_fork == ph->right_fork)
-	{
-		ph->arg->is_dead = 1;
-		return ;
-	}
-	pthread_mutex_lock(ph->right_fork);
+	pthread_mutex_lock(&ph->arg->forks[ph->right_fork]);
 	print_status("%ld %d has taken a fork\n", ph, ph->index);
-	pthread_mutex_lock(&ph->arg->death);
+	pthread_mutex_lock(&ph->meal);
 	ph->last_meal = get_current_time();
-	pthread_mutex_unlock(&ph->arg->death);
+	ph->nb_eat++;
+	pthread_mutex_unlock(&ph->meal);
 	print_status("%ld %d is eating\n", ph, ph->index);
-	ft_usleep(ph, ph->arg->time_to_eat);
-	if (ph->arg->nb_eat_max != -1)
-	{
-		pthread_mutex_lock(&ph->arg->eat);
-		ph->nb_eat++;
-		pthread_mutex_unlock(&ph->arg->eat);
-	}
-	pthread_mutex_unlock(ph->left_fork);
-	pthread_mutex_unlock(ph->right_fork);
+	ft_usleep_status(ph, ph->arg->time_to_eat);
+	pthread_mutex_unlock(&ph->arg->forks[ph->left_fork]);
+	pthread_mutex_unlock(&ph->arg->forks[ph->right_fork]);
 }
 
 int	death_checker(t_phil *ph)
 {
 	pthread_mutex_lock(&ph->arg->death);
-	if (ph->arg->is_dead == 1)
+	if (ph->arg->stop_condition == 1)
 	{
 		pthread_mutex_unlock(&ph->arg->death);
 		return (1);
@@ -56,20 +46,13 @@ static void	*philosophers(void *data)
 
 	ph = (t_phil *)data;
 	if (ph->index % 2 == 0)
-		ft_usleep(ph, ph->arg->time_to_eat / 10);
+		ft_usleep(ph->arg->time_to_eat / 10);
 	while (!death_checker(ph))
 	{
 		is_eating(ph);
 		print_status("%ld %d is sleeping\n", ph, ph->index);
-		ft_usleep(ph, ph->arg->time_to_sleep);
+		ft_usleep_status(ph, ph->arg->time_to_sleep);
 		print_status("%ld %d is thinking\n", ph, ph->index);
-		pthread_mutex_lock(&ph->arg->eat);
-		if (ph->arg->all_eaten == 1)
-		{
-			pthread_mutex_unlock(&ph->arg->eat);
-			break ;
-		}
-		pthread_mutex_unlock(&ph->arg->eat);
 	}
 	return (NULL);
 }
@@ -79,16 +62,17 @@ int	launch_threads(t_p *p)
 	int		i;
 
 	i = 0;
+	p->a.stop_condition = 0;
 	p->a.init_time = get_current_time();
-	p->a.is_dead = 0;
-	p->a.all_eaten = 0;
 	while (i < p->a.nb_phil)
 	{
 		p->ph[i].arg = &p->a;
 		p->ph[i].last_meal = get_current_time();
 		if (pthread_create(&p->ph[i].tid, NULL, philosophers, &(p->ph[i])) != 0)
-			return(ft_exit("Thread not launch properly\n"));
+			return (ft_exit("Thread not launch properly\n"));
 		i++;
 	}
+	monitor(p);
+	exit_threads(p);
 	return (1);
 }
