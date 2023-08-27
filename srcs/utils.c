@@ -26,8 +26,6 @@ void	ft_usleep_status(t_phil *ph, long int time_in_ms)
 {
 	long int	start_time;
 
-	(void)ph;
-	printf("Philosopher #%d\n", ph->index);
 	start_time = 0;
 	start_time = get_current_time();
 	while ((get_current_time() - start_time) < time_in_ms)
